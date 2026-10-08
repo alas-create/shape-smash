@@ -1,0 +1,72 @@
+/* 1. Base Game Setup */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #1a1a2e; /* A modern dark blue night-sky color */
+    color: white;
+    overflow: hidden; /* Stops the screen from scrolling up or down */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh; /* Forces the game to fill 100% of the screen height */
+}
+
+/* 2. Your Custom Watermark */
+.watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-12deg); /* Centers and tilts it slightly */
+    text-align: center;
+    opacity: 0.08; /* Makes it 8% visible so it doesn't block gameplay */
+    z-index: -1; /* The negative number pushes it BEHIND everything else */
+    pointer-events: none; /* Makes sure the mouse clicks pass right through it */
+    text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.4); /* Adds the subtle professional glow */
+}
+
+.watermark h1 {
+    font-size: 120px;
+    font-weight: bold;
+    letter-spacing: 5px;
+    white-space: nowrap;
+}
+
+.watermark h2 {
+    font-size: 50px;
+    letter-spacing: 15px;
+    white-space: nowrap;
+}
+
+/* 3. Main Menu Styling */
+#game-container {
+    text-align: center;
+    z-index: 1; /* Keeps the menu in front of the watermark */
+}
+
+.game-title {
+    font-size: 70px;
+    margin-bottom: 30px;
+    color: #e94560; /* A vibrant, colorful pinkish-red */
+    text-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+}
+
+#start-btn {
+    padding: 15px 40px;
+    font-size: 24px;
+    background-color: #0f3460; /* Deep blue button */
+    color: white;
+    border: 3px solid white;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+#start-btn:hover {
+    background-color: #e94560; /* Button changes to vibrant red when hovered */
+    transform: scale(1.1); /* Button grows slightly when hovered */
+}
