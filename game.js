@@ -36,7 +36,7 @@ function setupEngine() {
         if (event.body === energyOrb && shotsLeft > 0 && elastic.bodyB !== null) {
             setTimeout(() => {
                 elastic.bodyB = null; 
-                Composite.remove(engine.world, elastic); // Fixes the white line bug!
+                Composite.remove(engine.world, elastic); 
                 
                 shotsLeft--; updateHUD();
                 
@@ -48,7 +48,7 @@ function setupEngine() {
         }
     });
 
-    // Collision Logic
+    // Collision Logic (Damage on impact)
     Events.on(engine, 'collisionStart', function(event) {
         event.pairs.forEach((pair) => {
             if (pair.bodyA.speed > 2 || pair.bodyB.speed > 2) {
@@ -57,26 +57,37 @@ function setupEngine() {
         });
     });
 
-    // NEW: OUT OF BOUNDS LOGIC (THE KILL FLOOR)
-    Events.on(engine, 'afterUpdate', function() {
+    // NEW: FADE OUT EFFECT AND KILL FLOOR
+    Events.on(engine, 'beforeUpdate', function() {
         engine.world.bodies.forEach(body => {
-            // If a block falls off the bottom of the screen (past 650 pixels down)
-            if (body.position.y > 650 && body.customHealth) {
-                body.customHealth = 1; // Force its health low
-                takeDamage(body); // Destroy it so it counts towards the win!
+            // 1. The Fade Effect for dead blocks
+            if (body.isDying) {
+                body.render.opacity -= 0.03; // Slowly reduce visibility
+                if (body.render.opacity <= 0.05) {
+                    Composite.remove(engine.world, body); // Delete once invisible
+                }
+            }
+            
+            // 2. The Kill Floor (if a block falls off the screen)
+            if (body.position.y > 650 && body.customHealth && !body.isDying) {
+                body.customHealth = 1; 
+                takeDamage(body); 
             }
         });
     });
 }
 
-// --- HELPER: SPAWN BLOCKS EASILY ---
+// --- HELPER: SPAWN BIGGER, HEAVIER BLOCKS ---
 function spawnBlock(type, x, y) {
-    if (type === 'rect') return Bodies.rectangle(x, y, 120, 40, { label: 'target', customHealth: 2, render: { fillStyle: '#8d99ae' } });
-    if (type === 'square') return Bodies.rectangle(x, y, 50, 50, { label: 'target', customHealth: 2, render: { fillStyle: '#ef233c' } });
-    if (type === 'circle') return Bodies.circle(x, y, 25, { label: 'target', customHealth: 1, render: { fillStyle: '#ffb703' } });
-    if (type === 'triangle') return Bodies.polygon(x, y, 3, 30, { label: 'target', customHealth: 1, render: { fillStyle: '#8338ec' } });
-    if (type === 'diamond') return Bodies.polygon(x, y, 4, 30, { label: 'target', customHealth: 3, render: { fillStyle: '#3a86ff' } });
-    if (type === 'star') return Bodies.polygon(x, y, 5, 25, { label: 'star', customHealth: 1, render: { fillStyle: '#ff006e' } });
+    // Increased all sizes significantly and added density for heavier impact
+    const opts = { density: 0.005, restitution: 0.2 }; 
+    
+    if (type === 'rect') return Bodies.rectangle(x, y, 180, 60, { ...opts, label: 'target', customHealth: 2, render: { fillStyle: '#8d99ae' } });
+    if (type === 'square') return Bodies.rectangle(x, y, 80, 80, { ...opts, label: 'target', customHealth: 2, render: { fillStyle: '#ef233c' } });
+    if (type === 'circle') return Bodies.circle(x, y, 40, { ...opts, label: 'target', customHealth: 1, render: { fillStyle: '#ffb703' } });
+    if (type === 'triangle') return Bodies.polygon(x, y, 3, 50, { ...opts, label: 'target', customHealth: 1, render: { fillStyle: '#8338ec' } });
+    if (type === 'diamond') return Bodies.polygon(x, y, 4, 50, { ...opts, label: 'target', customHealth: 3, render: { fillStyle: '#3a86ff' } });
+    if (type === 'star') return Bodies.polygon(x, y, 5, 40, { ...opts, label: 'star', customHealth: 1, render: { fillStyle: '#ff006e' } });
 }
 
 // --- LEVEL LOADER ---
@@ -92,41 +103,43 @@ window.startLevel = function(levelNum) {
     Composite.add(engine.world, [floor, mouseConstraint]);
 
     let blocks = [];
+    
+    // We adjusted the Y coordinates to drop them in, letting them stack dynamically!
     if (levelNum === 1) {
         shotsLeft = 3;
-        blocks.push(spawnBlock('square', 600, 540));
-        blocks.push(spawnBlock('square', 600, 490));
-        blocks.push(spawnBlock('circle', 600, 440));
+        blocks.push(spawnBlock('square', 600, 500));
+        blocks.push(spawnBlock('square', 600, 400));
+        blocks.push(spawnBlock('circle', 600, 300));
     } 
     else if (levelNum === 2) {
         shotsLeft = 4;
-        blocks.push(spawnBlock('rect', 500, 540));
-        blocks.push(spawnBlock('triangle', 500, 490));
-        blocks.push(spawnBlock('rect', 700, 540));
-        blocks.push(spawnBlock('triangle', 700, 490));
+        blocks.push(spawnBlock('rect', 500, 500));
+        blocks.push(spawnBlock('triangle', 500, 400));
+        blocks.push(spawnBlock('rect', 700, 500));
+        blocks.push(spawnBlock('triangle', 700, 400));
     }
     else if (levelNum === 3) {
         shotsLeft = 3;
-        blocks.push(spawnBlock('diamond', 600, 540));
-        blocks.push(spawnBlock('diamond', 600, 490));
-        blocks.push(spawnBlock('square', 600, 440));
+        blocks.push(spawnBlock('diamond', 600, 500));
+        blocks.push(spawnBlock('diamond', 600, 400));
+        blocks.push(spawnBlock('square', 600, 300));
     }
     else if (levelNum === 4) {
         shotsLeft = 3;
-        blocks.push(spawnBlock('rect', 600, 540));
-        blocks.push(spawnBlock('circle', 550, 490));
-        blocks.push(spawnBlock('star', 600, 490));
-        blocks.push(spawnBlock('circle', 650, 490));
-        blocks.push(spawnBlock('rect', 600, 440));
+        blocks.push(spawnBlock('rect', 600, 500));
+        blocks.push(spawnBlock('circle', 550, 400));
+        blocks.push(spawnBlock('star', 600, 400));
+        blocks.push(spawnBlock('circle', 650, 400));
+        blocks.push(spawnBlock('rect', 600, 300));
     }
     else if (levelNum === 5) {
         shotsLeft = 5;
-        blocks.push(spawnBlock('rect', 600, 540));
-        blocks.push(spawnBlock('diamond', 550, 490));
-        blocks.push(spawnBlock('diamond', 650, 490));
-        blocks.push(spawnBlock('rect', 600, 440));
-        blocks.push(spawnBlock('star', 600, 390));
-        blocks.push(spawnBlock('triangle', 600, 340));
+        blocks.push(spawnBlock('rect', 600, 500));
+        blocks.push(spawnBlock('diamond', 550, 400));
+        blocks.push(spawnBlock('diamond', 650, 400));
+        blocks.push(spawnBlock('rect', 600, 300));
+        blocks.push(spawnBlock('star', 600, 200));
+        blocks.push(spawnBlock('triangle', 600, 100));
     }
 
     targetsLeft = blocks.filter(b => b.customHealth > 0).length;
@@ -136,29 +149,33 @@ window.startLevel = function(levelNum) {
 };
 
 function spawnOrb() {
-    energyOrb = Bodies.circle(150, 400, 20, { restitution: 0.8, render: { fillStyle: '#00e5ff' } });
-    const anchor = { x: 150, y: 400 };
+    // Moved slingshot back (X is now 80 instead of 150) and made orb slightly bigger
+    energyOrb = Bodies.circle(80, 400, 25, { density: 0.01, restitution: 0.8, render: { fillStyle: '#00e5ff' } });
+    const anchor = { x: 80, y: 400 };
     elastic = Constraint.create({ pointA: anchor, bodyB: energyOrb, stiffness: 0.05, render: { strokeStyle: '#ffffff', lineWidth: 2 } });
     Composite.add(engine.world, [energyOrb, elastic]);
 }
 
 function takeDamage(body) {
-    if (body.customHealth && !gameOver) {
+    if (body.customHealth && !gameOver && !body.isDying) {
         body.customHealth -= 1;
         if (body.customHealth <= 0) {
             if (body.label === 'star') triggerExplosion(body.position);
-            Composite.remove(engine.world, body);
-            body.customHealth = null;
+            
+            // THE DRAMATIC COLLAPSE: Turn block into a ghost so others fall through it
+            body.isSensor = true; 
+            body.isDying = true; // Trigger the fade out animation
+            
             targetsLeft--; updateHUD(); checkWinLose();
         } else {
-            body.render.opacity = 0.6;
+            body.render.opacity = 0.8;
         }
     }
 }
 
 function triggerExplosion(pos) {
     engine.world.bodies.forEach(otherBody => {
-        if (otherBody.customHealth && Vector.magnitude(Vector.sub(pos, otherBody.position)) < 120) {
+        if (otherBody.customHealth && Vector.magnitude(Vector.sub(pos, otherBody.position)) < 150) {
             takeDamage(otherBody);
         }
     });
@@ -177,7 +194,7 @@ function checkWinLose() {
             messageText.innerText = "LEVEL CLEARED!";
             document.getElementById('next-level-btn').style.display = currentLevel < 5 ? 'inline-block' : 'none';
             messageScreen.style.display = 'block';
-        }, 1000);
+        }, 1500); // Give a bit more time for the fade animation to finish
     } else if (shotsLeft <= 0 && targetsLeft > 0) {
         setTimeout(() => {
             if (targetsLeft > 0 && !gameOver) {
