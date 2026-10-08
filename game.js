@@ -15,8 +15,6 @@ const starDisplay = document.getElementById('star-display');
 let shotsLeft = 0, initialShots = 0, targetsLeft = 0, currentLevel = 1, gameOver = false;
 let energyOrb, elastic, render, runner, mouseConstraint;
 let dashUsed = false; 
-
-// The blocks are now completely invincible until you fire your first shot!
 let gracePeriod = true; 
 
 const floor = Bodies.rectangle(600, 590, 1210, 60, { isStatic: true, render: { fillStyle: '#4a4e69' } });
@@ -41,10 +39,7 @@ function setupEngine() {
             setTimeout(() => {
                 elastic.bodyB = null; 
                 Composite.remove(engine.world, elastic); 
-                
-                // The moment you shoot, the blocks become breakable
                 gracePeriod = false; 
-                
                 shotsLeft--; updateHUD();
                 
                 if (shotsLeft > 0 && !gameOver) {
@@ -72,22 +67,18 @@ function setupEngine() {
 
     Events.on(engine, 'beforeUpdate', function() {
         engine.world.bodies.forEach(body => {
-            // 1. Ghost fading when destroyed
             if (body.isDying) {
                 body.render.opacity -= 0.03; 
                 if (body.render.opacity <= 0.05) Composite.remove(engine.world, body);
             }
-            // 2. Nanotech materialization when spawned
             if (body.isMaterializing) {
-                body.render.opacity += 0.02; // Slowly fade into existence
+                body.render.opacity += 0.02; 
                 if (body.render.opacity >= 1) {
                     body.isMaterializing = false;
                 }
             }
-            // 3. Kill floor
             if (body.position.y > 650 && body.customHealth && !body.isDying) {
                 body.customHealth = 1; 
-                // We briefly turn off grace period so the kill floor always works
                 let tempGrace = gracePeriod;
                 gracePeriod = false;
                 takeDamage(body); 
@@ -99,9 +90,7 @@ function setupEngine() {
 
 function spawnBlock(type, x, y) {
     const opts = { density: 0.005, restitution: 0.2 }; 
-    // Notice opacity is 0! They start invisible and "materialize" in the game loop.
-    let fill = '';
-    let body = null;
+    let fill = ''; let body = null;
 
     if (type === 'rect') { fill = '#8d99ae'; body = Bodies.rectangle(x, y, 220, 80, { ...opts, label: 'target', customHealth: 2, render: { fillStyle: fill, opacity: 0 } }); }
     if (type === 'square') { fill = '#ef233c'; body = Bodies.rectangle(x, y, 100, 100, { ...opts, label: 'target', customHealth: 2, render: { fillStyle: fill, opacity: 0 } }); }
@@ -122,7 +111,6 @@ window.startLevel = function(levelNum) {
     starDisplay.style.display = 'none';
     gameOver = false;
     
-    // Reset grace period every time a new level loads
     gracePeriod = true;
 
     Composite.clear(engine.world);
@@ -131,7 +119,6 @@ window.startLevel = function(levelNum) {
 
     let blocks = [];
     
-    // PERFECT STACKING: Blocks are now spawned exactly on top of each other
     if (levelNum === 1) {
         shotsLeft = 3;
         blocks.push(spawnBlock('square', 1000, 510));
@@ -156,13 +143,35 @@ window.startLevel = function(levelNum) {
         blocks.push(spawnBlock('circle', 1070, 430));
         blocks.push(spawnBlock('rect', 1000, 340));
     } else if (levelNum === 5) {
-        shotsLeft = 5;
-        blocks.push(spawnBlock('rect', 1000, 520));
-        blocks.push(spawnBlock('diamond', 930, 420));
-        blocks.push(spawnBlock('diamond', 1070, 420));
-        blocks.push(spawnBlock('rect', 1000, 320));
-        blocks.push(spawnBlock('star', 1000, 230));
-        blocks.push(spawnBlock('triangle', 1000, 130));
+        // THE NEW BOSS FORTRESS (16 Blocks, 8 Shots)
+        shotsLeft = 8;
+        
+        // Floor Foundation
+        blocks.push(spawnBlock('square', 800, 510));
+        blocks.push(spawnBlock('square', 960, 510));
+        blocks.push(spawnBlock('square', 1120, 510));
+
+        // Platform 1
+        blocks.push(spawnBlock('rect', 850, 420));
+        blocks.push(spawnBlock('rect', 1070, 420));
+
+        // The Core (2 Stars guarded by 2 Diamonds)
+        blocks.push(spawnBlock('diamond', 780, 310));
+        blocks.push(spawnBlock('star', 900, 310));
+        blocks.push(spawnBlock('star', 1020, 310));
+        blocks.push(spawnBlock('diamond', 1140, 310));
+
+        // Platform 2
+        blocks.push(spawnBlock('rect', 850, 200));
+        blocks.push(spawnBlock('rect', 1070, 200));
+
+        // Top Towers
+        blocks.push(spawnBlock('circle', 850, 100));
+        blocks.push(spawnBlock('square', 960, 100));
+        blocks.push(spawnBlock('circle', 1070, 100));
+
+        // The Crown
+        blocks.push(spawnBlock('diamond', 960, -20));
     }
 
     initialShots = shotsLeft; 
@@ -181,7 +190,6 @@ function spawnOrb() {
 }
 
 function takeDamage(body) {
-    // If the player hasn't shot the slingshot yet, blocks CANNOT take damage!
     if (gracePeriod) return;
 
     if (body.customHealth && !gameOver && !body.isDying) {
@@ -232,8 +240,8 @@ function checkWinLose() {
             messageText.innerText = "LEVEL CLEARED!";
             
             let shotsUsed = initialShots - shotsLeft;
-            if (shotsUsed === 1) starDisplay.innerText = "★★★";
-            else if (shotsUsed === 2) starDisplay.innerText = "★★☆";
+            if (shotsUsed <= 2) starDisplay.innerText = "★★★";
+            else if (shotsUsed <= 4) starDisplay.innerText = "★★☆";
             else starDisplay.innerText = "★☆☆";
             
             starDisplay.style.display = 'block';
