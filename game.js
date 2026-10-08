@@ -14,7 +14,11 @@ const starDisplay = document.getElementById('star-display');
 
 let shotsLeft = 0, initialShots = 0, targetsLeft = 0, currentLevel = 1, gameOver = false;
 let energyOrb, elastic, render, runner, mouseConstraint;
-let dashUsed = false; // Tracks if the player used their in-flight dash
+let dashUsed = false; 
+
+// NEW: Protects blocks when they drop in
+let gracePeriod = true; 
+
 const floor = Bodies.rectangle(400, 590, 810, 60, { isStatic: true, render: { fillStyle: '#4a4e69' } });
 
 startBtn.addEventListener('click', () => {
@@ -32,12 +36,15 @@ function setupEngine() {
     runner = Runner.create();
     Runner.run(runner, engine);
     
-    // Slingshot Firing
     Events.on(mouseConstraint, 'enddrag', function(event) {
         if (event.body === energyOrb && shotsLeft > 0 && elastic.bodyB !== null) {
             setTimeout(() => {
                 elastic.bodyB = null; 
                 Composite.remove(engine.world, elastic); 
+                
+                // Turn off invincibility the moment you shoot
+                gracePeriod = false; 
+                
                 shotsLeft--; updateHUD();
                 
                 if (shotsLeft > 0 && !gameOver) {
@@ -48,18 +55,17 @@ function setupEngine() {
         }
     });
 
-    // Dash Ability! Click anywhere on the screen while the orb is flying
     document.addEventListener('mousedown', function() {
         if (energyOrb && elastic && elastic.bodyB === null && !dashUsed && energyOrb.speed > 2) {
             dashUsed = true;
-            // Force the orb sharply forward and down like a meteor strike
             Matter.Body.setVelocity(energyOrb, { x: energyOrb.velocity.x * 1.5, y: 15 });
         }
     });
 
     Events.on(engine, 'collisionStart', function(event) {
         event.pairs.forEach((pair) => {
-            if (pair.bodyA.speed > 2 || pair.bodyB.speed > 2) {
+            // Increased speed threshold slightly so gentle bumps don't break them
+            if (pair.bodyA.speed > 3 || pair.bodyB.speed > 3) {
                 takeDamage(pair.bodyA); takeDamage(pair.bodyB);
             }
         });
@@ -94,8 +100,12 @@ window.startLevel = function(levelNum) {
     levelSelect.style.display = 'none';
     gameContainer.style.display = 'block';
     messageScreen.style.display = 'none';
-    starDisplay.style.display = 'none'; // Hide stars when starting
+    starDisplay.style.display = 'none';
     gameOver = false;
+    
+    // Turn on grace period when blocks are spawning
+    gracePeriod = true;
+    setTimeout(() => { gracePeriod = false; }, 2000); 
 
     Composite.clear(engine.world);
     Engine.clear(engine);
@@ -135,7 +145,7 @@ window.startLevel = function(levelNum) {
         blocks.push(spawnBlock('triangle', 600, 100));
     }
 
-    initialShots = shotsLeft; // Remember how many shots we started with for the Star Rating
+    initialShots = shotsLeft; 
     targetsLeft = blocks.filter(b => b.customHealth > 0).length;
     Composite.add(engine.world, blocks);
     updateHUD();
@@ -143,7 +153,7 @@ window.startLevel = function(levelNum) {
 };
 
 function spawnOrb() {
-    dashUsed = false; // Reset ability for the new orb
+    dashUsed = false; 
     energyOrb = Bodies.circle(80, 400, 25, { density: 0.01, restitution: 0.8, render: { fillStyle: '#00e5ff' } });
     const anchor = { x: 80, y: 400 };
     elastic = Constraint.create({ pointA: anchor, bodyB: energyOrb, stiffness: 0.05, render: { strokeStyle: '#ffffff', lineWidth: 2 } });
@@ -151,24 +161,22 @@ function spawnOrb() {
 }
 
 function takeDamage(body) {
+    // If grace period is active, blocks cannot take damage!
+    if (gracePeriod) return;
+
     if (body.customHealth && !gameOver && !body.isDying) {
         body.customHealth -= 1;
         if (body.customHealth <= 0) {
             
-            // 1. Trigger Screen Shake
             document.body.classList.add('shake');
             setTimeout(() => document.body.classList.remove('shake'), 300);
 
-            // 2. Spawn Particle Debris
             for(let i = 0; i < 5; i++) {
                 let debris = Bodies.rectangle(body.position.x, body.position.y, 15, 15, {
                     render: { fillStyle: body.render.fillStyle }
                 });
-                // Shoot debris in random directions
                 Matter.Body.setVelocity(debris, { x: (Math.random() - 0.5) * 15, y: (Math.random() - 0.5) * 15 });
                 Composite.add(engine.world, debris);
-                
-                // Make debris disappear after 1 second so it doesn't clutter the game
                 setTimeout(() => Composite.remove(engine.world, debris), 1000);
             }
 
@@ -203,7 +211,6 @@ function checkWinLose() {
         setTimeout(() => {
             messageText.innerText = "LEVEL CLEARED!";
             
-            // Calculate 3-Star Rating
             let shotsUsed = initialShots - shotsLeft;
             if (shotsUsed === 1) starDisplay.innerText = "★★★";
             else if (shotsUsed === 2) starDisplay.innerText = "★★☆";
