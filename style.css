@@ -79,3 +79,50 @@ canvas {
     background-color: rgba(0, 0, 0, 0.4); /* Dark semi-transparent background */
     z-index: 1; /* Keeps the game above the watermark */
 }
+/* 5. Game UI and Messages */
+#game-container {
+    position: relative; /* Allows us to position the HUD directly over the canvas */
+}
+
+#hud {
+    display: none; /* Hidden until the game starts */
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 2px 2px 4px black; /* Makes text readable over bright blocks */
+    z-index: 10;
+}
+
+#message-screen {
+    display: none; /* Hidden until you win or lose */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.85);
+    padding: 40px;
+    border-radius: 15px;
+    border: 3px solid #e94560;
+    z-index: 20;
+}
+
+#message-text {
+    font-size: 50px;
+    margin-bottom: 20px;
+    color: white;
+}
+
+#restart-btn {
+    padding: 10px 30px;
+    font-size: 20px;
+    background-color: #e94560;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
