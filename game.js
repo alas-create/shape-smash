@@ -17,8 +17,8 @@ let energyOrb, elastic, render, runner, mouseConstraint;
 let dashUsed = false; 
 let gracePeriod = true; 
 
-// WIDENED THE FLOOR to fit the new 1000px wide arena
-const floor = Bodies.rectangle(500, 590, 1010, 60, { isStatic: true, render: { fillStyle: '#4a4e69' } });
+// WIDER FLOOR (1210px wide to fit the new arena)
+const floor = Bodies.rectangle(600, 590, 1210, 60, { isStatic: true, render: { fillStyle: '#4a4e69' } });
 
 startBtn.addEventListener('click', () => {
     mainMenu.style.display = 'none';
@@ -27,8 +27,8 @@ startBtn.addEventListener('click', () => {
 });
 
 function setupEngine() {
-    // EXPANDED CANVAS: Width is now 1000 (was 800)
-    render = Render.create({ element: gameContainer, engine: engine, options: { width: 1000, height: 600, wireframes: false, background: 'transparent' } });
+    // MASSIVE CANVAS: Width is now 1200
+    render = Render.create({ element: gameContainer, engine: engine, options: { width: 1200, height: 600, wireframes: false, background: 'transparent' } });
     const mouse = Mouse.create(render.canvas);
     mouseConstraint = MouseConstraint.create(engine, { mouse: mouse, constraint: { stiffness: 0.2, render: { visible: false } } });
     render.mouse = mouse;
@@ -81,7 +81,6 @@ function setupEngine() {
     });
 }
 
-// SUPER-SIZED BLOCKS: Increased width, height, and radius of everything
 function spawnBlock(type, x, y) {
     const opts = { density: 0.005, restitution: 0.2 }; 
     if (type === 'rect') return Bodies.rectangle(x, y, 220, 80, { ...opts, label: 'target', customHealth: 2, render: { fillStyle: '#8d99ae' } });
@@ -109,39 +108,38 @@ window.startLevel = function(levelNum) {
 
     let blocks = [];
     
-    // MOVED TOWERS FARTHER RIGHT (X coordinates changed from 600 to 800)
-    // SPACED OUT Y COORDINATES to fit the much bigger blocks!
+    // MOVED TOWERS FAR TO THE RIGHT (Base X is now 1000)
     if (levelNum === 1) {
         shotsLeft = 3;
-        blocks.push(spawnBlock('square', 800, 500));
-        blocks.push(spawnBlock('square', 800, 380));
-        blocks.push(spawnBlock('circle', 800, 240));
+        blocks.push(spawnBlock('square', 1000, 500));
+        blocks.push(spawnBlock('square', 1000, 380));
+        blocks.push(spawnBlock('circle', 1000, 240));
     } else if (levelNum === 2) {
         shotsLeft = 4;
-        blocks.push(spawnBlock('rect', 650, 500));
-        blocks.push(spawnBlock('triangle', 650, 380));
-        blocks.push(spawnBlock('rect', 900, 500));
-        blocks.push(spawnBlock('triangle', 900, 380));
+        blocks.push(spawnBlock('rect', 850, 500));
+        blocks.push(spawnBlock('triangle', 850, 380));
+        blocks.push(spawnBlock('rect', 1100, 500));
+        blocks.push(spawnBlock('triangle', 1100, 380));
     } else if (levelNum === 3) {
         shotsLeft = 3;
-        blocks.push(spawnBlock('diamond', 800, 500));
-        blocks.push(spawnBlock('diamond', 800, 380));
-        blocks.push(spawnBlock('square', 800, 240));
+        blocks.push(spawnBlock('diamond', 1000, 500));
+        blocks.push(spawnBlock('diamond', 1000, 380));
+        blocks.push(spawnBlock('square', 1000, 240));
     } else if (levelNum === 4) {
         shotsLeft = 3;
-        blocks.push(spawnBlock('rect', 800, 500));
-        blocks.push(spawnBlock('circle', 730, 380));
-        blocks.push(spawnBlock('star', 800, 380));
-        blocks.push(spawnBlock('circle', 870, 380));
-        blocks.push(spawnBlock('rect', 800, 250));
+        blocks.push(spawnBlock('rect', 1000, 500));
+        blocks.push(spawnBlock('circle', 930, 380));
+        blocks.push(spawnBlock('star', 1000, 380));
+        blocks.push(spawnBlock('circle', 1070, 380));
+        blocks.push(spawnBlock('rect', 1000, 250));
     } else if (levelNum === 5) {
         shotsLeft = 5;
-        blocks.push(spawnBlock('rect', 800, 500));
-        blocks.push(spawnBlock('diamond', 730, 380));
-        blocks.push(spawnBlock('diamond', 870, 380));
-        blocks.push(spawnBlock('rect', 800, 250));
-        blocks.push(spawnBlock('star', 800, 120));
-        blocks.push(spawnBlock('triangle', 800, 0));
+        blocks.push(spawnBlock('rect', 1000, 500));
+        blocks.push(spawnBlock('diamond', 930, 380));
+        blocks.push(spawnBlock('diamond', 1070, 380));
+        blocks.push(spawnBlock('rect', 1000, 250));
+        blocks.push(spawnBlock('star', 1000, 120));
+        blocks.push(spawnBlock('triangle', 1000, 0));
     }
 
     initialShots = shotsLeft; 
@@ -153,9 +151,9 @@ window.startLevel = function(levelNum) {
 
 function spawnOrb() {
     dashUsed = false; 
-    // MOVED SLINGSHOT FARTHER LEFT (X is now 50) and made the Orb bigger (30)
-    energyOrb = Bodies.circle(50, 400, 30, { density: 0.01, restitution: 0.8, render: { fillStyle: '#00e5ff' } });
-    const anchor = { x: 50, y: 400 };
+    // MOVED SLINGSHOT AWAY FROM THE WALL (X is now 250 instead of 50)
+    energyOrb = Bodies.circle(250, 400, 30, { density: 0.01, restitution: 0.8, render: { fillStyle: '#00e5ff' } });
+    const anchor = { x: 250, y: 400 };
     elastic = Constraint.create({ pointA: anchor, bodyB: energyOrb, stiffness: 0.05, render: { strokeStyle: '#ffffff', lineWidth: 2 } });
     Composite.add(engine.world, [energyOrb, elastic]);
 }
@@ -171,7 +169,6 @@ function takeDamage(body) {
             setTimeout(() => document.body.classList.remove('shake'), 300);
 
             for(let i = 0; i < 5; i++) {
-                // Made the debris particles slightly bigger to match
                 let debris = Bodies.rectangle(body.position.x, body.position.y, 20, 20, {
                     render: { fillStyle: body.render.fillStyle }
                 });
@@ -193,7 +190,6 @@ function takeDamage(body) {
 
 function triggerExplosion(pos) {
     engine.world.bodies.forEach(otherBody => {
-        // Increased explosion radius (200) because blocks are bigger now
         if (otherBody.customHealth && Vector.magnitude(Vector.sub(pos, otherBody.position)) < 200) {
             takeDamage(otherBody);
         }
