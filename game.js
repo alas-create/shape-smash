@@ -18,7 +18,7 @@ const floor = Bodies.rectangle(400, 590, 810, 60, { isStatic: true, render: { fi
 // --- GAME SETUP ---
 startBtn.addEventListener('click', () => {
     mainMenu.style.display = 'none';
-    levelSelect.style.display = 'block'; // Show level select instead of starting immediately
+    levelSelect.style.display = 'block';
     setupEngine();
 });
 
@@ -35,14 +35,11 @@ function setupEngine() {
     Events.on(mouseConstraint, 'enddrag', function(event) {
         if (event.body === energyOrb && shotsLeft > 0 && elastic.bodyB !== null) {
             setTimeout(() => {
-                elastic.bodyB = null; // Fire orb
-                
-                // NEW LINE: Delete the old rubber band so it doesn't get stuck!
-                Composite.remove(engine.world, elastic); 
+                elastic.bodyB = null; 
+                Composite.remove(engine.world, elastic); // Fixes the white line bug!
                 
                 shotsLeft--; updateHUD();
                 
-                // Reload Orb after 1.5 seconds if shots remain
                 if (shotsLeft > 0 && !gameOver) {
                     setTimeout(() => { if (!gameOver) spawnOrb(); }, 1500);
                 }
@@ -56,6 +53,17 @@ function setupEngine() {
         event.pairs.forEach((pair) => {
             if (pair.bodyA.speed > 2 || pair.bodyB.speed > 2) {
                 takeDamage(pair.bodyA); takeDamage(pair.bodyB);
+            }
+        });
+    });
+
+    // NEW: OUT OF BOUNDS LOGIC (THE KILL FLOOR)
+    Events.on(engine, 'afterUpdate', function() {
+        engine.world.bodies.forEach(body => {
+            // If a block falls off the bottom of the screen (past 650 pixels down)
+            if (body.position.y > 650 && body.customHealth) {
+                body.customHealth = 1; // Force its health low
+                takeDamage(body); // Destroy it so it counts towards the win!
             }
         });
     });
@@ -79,42 +87,39 @@ window.startLevel = function(levelNum) {
     messageScreen.style.display = 'none';
     gameOver = false;
 
-    // Clear previous level
     Composite.clear(engine.world);
     Engine.clear(engine);
     Composite.add(engine.world, [floor, mouseConstraint]);
 
     let blocks = [];
-
-    // DESIGNING THE 5 LEVELS
-    if (levelNum === 1) { // Easy Intro
+    if (levelNum === 1) {
         shotsLeft = 3;
         blocks.push(spawnBlock('square', 600, 540));
         blocks.push(spawnBlock('square', 600, 490));
         blocks.push(spawnBlock('circle', 600, 440));
     } 
-    else if (levelNum === 2) { // Multiple Targets
+    else if (levelNum === 2) {
         shotsLeft = 4;
         blocks.push(spawnBlock('rect', 500, 540));
         blocks.push(spawnBlock('triangle', 500, 490));
         blocks.push(spawnBlock('rect', 700, 540));
         blocks.push(spawnBlock('triangle', 700, 490));
     }
-    else if (levelNum === 3) { // Stronger Structures
+    else if (levelNum === 3) {
         shotsLeft = 3;
         blocks.push(spawnBlock('diamond', 600, 540));
         blocks.push(spawnBlock('diamond', 600, 490));
         blocks.push(spawnBlock('square', 600, 440));
     }
-    else if (levelNum === 4) { // Mixed Mechanics
+    else if (levelNum === 4) {
         shotsLeft = 3;
         blocks.push(spawnBlock('rect', 600, 540));
         blocks.push(spawnBlock('circle', 550, 490));
-        blocks.push(spawnBlock('star', 600, 490)); // Explodes!
+        blocks.push(spawnBlock('star', 600, 490));
         blocks.push(spawnBlock('circle', 650, 490));
         blocks.push(spawnBlock('rect', 600, 440));
     }
-    else if (levelNum === 5) { // Boss Fortress
+    else if (levelNum === 5) {
         shotsLeft = 5;
         blocks.push(spawnBlock('rect', 600, 540));
         blocks.push(spawnBlock('diamond', 550, 490));
@@ -137,7 +142,6 @@ function spawnOrb() {
     Composite.add(engine.world, [energyOrb, elastic]);
 }
 
-// --- DAMAGE AND UI LOGIC ---
 function takeDamage(body) {
     if (body.customHealth && !gameOver) {
         body.customHealth -= 1;
@@ -186,7 +190,6 @@ function checkWinLose() {
     }
 }
 
-// UI Buttons
 document.getElementById('retry-btn').addEventListener('click', () => window.startLevel(currentLevel));
 document.getElementById('next-level-btn').addEventListener('click', () => window.startLevel(currentLevel + 1));
 document.getElementById('menu-btn').addEventListener('click', () => location.reload());
