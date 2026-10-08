@@ -15,9 +15,10 @@ const starDisplay = document.getElementById('star-display');
 let shotsLeft = 0, initialShots = 0, targetsLeft = 0, currentLevel = 1, gameOver = false;
 let energyOrb, elastic, render, runner, mouseConstraint;
 let dashUsed = false; 
+
+// The blocks are now completely invincible until you fire your first shot!
 let gracePeriod = true; 
 
-// WIDER FLOOR (1210px wide to fit the new arena)
 const floor = Bodies.rectangle(600, 590, 1210, 60, { isStatic: true, render: { fillStyle: '#4a4e69' } });
 
 startBtn.addEventListener('click', () => {
@@ -27,7 +28,6 @@ startBtn.addEventListener('click', () => {
 });
 
 function setupEngine() {
-    // MASSIVE CANVAS: Width is now 1200
     render = Render.create({ element: gameContainer, engine: engine, options: { width: 1200, height: 600, wireframes: false, background: 'transparent' } });
     const mouse = Mouse.create(render.canvas);
     mouseConstraint = MouseConstraint.create(engine, { mouse: mouse, constraint: { stiffness: 0.2, render: { visible: false } } });
@@ -41,7 +41,10 @@ function setupEngine() {
             setTimeout(() => {
                 elastic.bodyB = null; 
                 Composite.remove(engine.world, elastic); 
+                
+                // The moment you shoot, the blocks become breakable
                 gracePeriod = false; 
+                
                 shotsLeft--; updateHUD();
                 
                 if (shotsLeft > 0 && !gameOver) {
@@ -69,13 +72,26 @@ function setupEngine() {
 
     Events.on(engine, 'beforeUpdate', function() {
         engine.world.bodies.forEach(body => {
+            // 1. Ghost fading when destroyed
             if (body.isDying) {
                 body.render.opacity -= 0.03; 
                 if (body.render.opacity <= 0.05) Composite.remove(engine.world, body);
             }
+            // 2. Nanotech materialization when spawned
+            if (body.isMaterializing) {
+                body.render.opacity += 0.02; // Slowly fade into existence
+                if (body.render.opacity >= 1) {
+                    body.isMaterializing = false;
+                }
+            }
+            // 3. Kill floor
             if (body.position.y > 650 && body.customHealth && !body.isDying) {
                 body.customHealth = 1; 
+                // We briefly turn off grace period so the kill floor always works
+                let tempGrace = gracePeriod;
+                gracePeriod = false;
                 takeDamage(body); 
+                gracePeriod = tempGrace;
             }
         });
     });
@@ -83,12 +99,19 @@ function setupEngine() {
 
 function spawnBlock(type, x, y) {
     const opts = { density: 0.005, restitution: 0.2 }; 
-    if (type === 'rect') return Bodies.rectangle(x, y, 220, 80, { ...opts, label: 'target', customHealth: 2, render: { fillStyle: '#8d99ae' } });
-    if (type === 'square') return Bodies.rectangle(x, y, 100, 100, { ...opts, label: 'target', customHealth: 2, render: { fillStyle: '#ef233c' } });
-    if (type === 'circle') return Bodies.circle(x, y, 50, { ...opts, label: 'target', customHealth: 1, render: { fillStyle: '#ffb703' } });
-    if (type === 'triangle') return Bodies.polygon(x, y, 3, 60, { ...opts, label: 'target', customHealth: 1, render: { fillStyle: '#8338ec' } });
-    if (type === 'diamond') return Bodies.polygon(x, y, 4, 60, { ...opts, label: 'target', customHealth: 3, render: { fillStyle: '#3a86ff' } });
-    if (type === 'star') return Bodies.polygon(x, y, 5, 50, { ...opts, label: 'star', customHealth: 1, render: { fillStyle: '#ff006e' } });
+    // Notice opacity is 0! They start invisible and "materialize" in the game loop.
+    let fill = '';
+    let body = null;
+
+    if (type === 'rect') { fill = '#8d99ae'; body = Bodies.rectangle(x, y, 220, 80, { ...opts, label: 'target', customHealth: 2, render: { fillStyle: fill, opacity: 0 } }); }
+    if (type === 'square') { fill = '#ef233c'; body = Bodies.rectangle(x, y, 100, 100, { ...opts, label: 'target', customHealth: 2, render: { fillStyle: fill, opacity: 0 } }); }
+    if (type === 'circle') { fill = '#ffb703'; body = Bodies.circle(x, y, 50, { ...opts, label: 'target', customHealth: 1, render: { fillStyle: fill, opacity: 0 } }); }
+    if (type === 'triangle') { fill = '#8338ec'; body = Bodies.polygon(x, y, 3, 60, { ...opts, label: 'target', customHealth: 1, render: { fillStyle: fill, opacity: 0 } }); }
+    if (type === 'diamond') { fill = '#3a86ff'; body = Bodies.polygon(x, y, 4, 60, { ...opts, label: 'target', customHealth: 3, render: { fillStyle: fill, opacity: 0 } }); }
+    if (type === 'star') { fill = '#ff006e'; body = Bodies.polygon(x, y, 5, 50, { ...opts, label: 'star', customHealth: 1, render: { fillStyle: fill, opacity: 0 } }); }
+    
+    body.isMaterializing = true;
+    return body;
 }
 
 window.startLevel = function(levelNum) {
@@ -99,8 +122,8 @@ window.startLevel = function(levelNum) {
     starDisplay.style.display = 'none';
     gameOver = false;
     
+    // Reset grace period every time a new level loads
     gracePeriod = true;
-    setTimeout(() => { gracePeriod = false; }, 2000); 
 
     Composite.clear(engine.world);
     Engine.clear(engine);
@@ -108,38 +131,38 @@ window.startLevel = function(levelNum) {
 
     let blocks = [];
     
-    // MOVED TOWERS FAR TO THE RIGHT (Base X is now 1000)
+    // PERFECT STACKING: Blocks are now spawned exactly on top of each other
     if (levelNum === 1) {
         shotsLeft = 3;
-        blocks.push(spawnBlock('square', 1000, 500));
-        blocks.push(spawnBlock('square', 1000, 380));
-        blocks.push(spawnBlock('circle', 1000, 240));
+        blocks.push(spawnBlock('square', 1000, 510));
+        blocks.push(spawnBlock('square', 1000, 410));
+        blocks.push(spawnBlock('circle', 1000, 310));
     } else if (levelNum === 2) {
         shotsLeft = 4;
-        blocks.push(spawnBlock('rect', 850, 500));
-        blocks.push(spawnBlock('triangle', 850, 380));
-        blocks.push(spawnBlock('rect', 1100, 500));
-        blocks.push(spawnBlock('triangle', 1100, 380));
+        blocks.push(spawnBlock('rect', 850, 520));
+        blocks.push(spawnBlock('triangle', 850, 430));
+        blocks.push(spawnBlock('rect', 1100, 520));
+        blocks.push(spawnBlock('triangle', 1100, 430));
     } else if (levelNum === 3) {
         shotsLeft = 3;
         blocks.push(spawnBlock('diamond', 1000, 500));
         blocks.push(spawnBlock('diamond', 1000, 380));
-        blocks.push(spawnBlock('square', 1000, 240));
+        blocks.push(spawnBlock('square', 1000, 270));
     } else if (levelNum === 4) {
         shotsLeft = 3;
-        blocks.push(spawnBlock('rect', 1000, 500));
-        blocks.push(spawnBlock('circle', 930, 380));
-        blocks.push(spawnBlock('star', 1000, 380));
-        blocks.push(spawnBlock('circle', 1070, 380));
-        blocks.push(spawnBlock('rect', 1000, 250));
+        blocks.push(spawnBlock('rect', 1000, 520));
+        blocks.push(spawnBlock('circle', 930, 430));
+        blocks.push(spawnBlock('star', 1000, 430));
+        blocks.push(spawnBlock('circle', 1070, 430));
+        blocks.push(spawnBlock('rect', 1000, 340));
     } else if (levelNum === 5) {
         shotsLeft = 5;
-        blocks.push(spawnBlock('rect', 1000, 500));
-        blocks.push(spawnBlock('diamond', 930, 380));
-        blocks.push(spawnBlock('diamond', 1070, 380));
-        blocks.push(spawnBlock('rect', 1000, 250));
-        blocks.push(spawnBlock('star', 1000, 120));
-        blocks.push(spawnBlock('triangle', 1000, 0));
+        blocks.push(spawnBlock('rect', 1000, 520));
+        blocks.push(spawnBlock('diamond', 930, 420));
+        blocks.push(spawnBlock('diamond', 1070, 420));
+        blocks.push(spawnBlock('rect', 1000, 320));
+        blocks.push(spawnBlock('star', 1000, 230));
+        blocks.push(spawnBlock('triangle', 1000, 130));
     }
 
     initialShots = shotsLeft; 
@@ -151,7 +174,6 @@ window.startLevel = function(levelNum) {
 
 function spawnOrb() {
     dashUsed = false; 
-    // MOVED SLINGSHOT AWAY FROM THE WALL (X is now 250 instead of 50)
     energyOrb = Bodies.circle(250, 400, 30, { density: 0.01, restitution: 0.8, render: { fillStyle: '#00e5ff' } });
     const anchor = { x: 250, y: 400 };
     elastic = Constraint.create({ pointA: anchor, bodyB: energyOrb, stiffness: 0.05, render: { strokeStyle: '#ffffff', lineWidth: 2 } });
@@ -159,6 +181,7 @@ function spawnOrb() {
 }
 
 function takeDamage(body) {
+    // If the player hasn't shot the slingshot yet, blocks CANNOT take damage!
     if (gracePeriod) return;
 
     if (body.customHealth && !gameOver && !body.isDying) {
