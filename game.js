@@ -124,4 +124,116 @@ window.startLevel = function(levelNum) {
         blocks.push(spawnBlock('triangle', 900, 380));
     } else if (levelNum === 3) {
         shotsLeft = 3;
-        blocks.
+        blocks.push(spawnBlock('diamond', 800, 500));
+        blocks.push(spawnBlock('diamond', 800, 380));
+        blocks.push(spawnBlock('square', 800, 240));
+    } else if (levelNum === 4) {
+        shotsLeft = 3;
+        blocks.push(spawnBlock('rect', 800, 500));
+        blocks.push(spawnBlock('circle', 730, 380));
+        blocks.push(spawnBlock('star', 800, 380));
+        blocks.push(spawnBlock('circle', 870, 380));
+        blocks.push(spawnBlock('rect', 800, 250));
+    } else if (levelNum === 5) {
+        shotsLeft = 5;
+        blocks.push(spawnBlock('rect', 800, 500));
+        blocks.push(spawnBlock('diamond', 730, 380));
+        blocks.push(spawnBlock('diamond', 870, 380));
+        blocks.push(spawnBlock('rect', 800, 250));
+        blocks.push(spawnBlock('star', 800, 120));
+        blocks.push(spawnBlock('triangle', 800, 0));
+    }
+
+    initialShots = shotsLeft; 
+    targetsLeft = blocks.filter(b => b.customHealth > 0).length;
+    Composite.add(engine.world, blocks);
+    updateHUD();
+    spawnOrb();
+};
+
+function spawnOrb() {
+    dashUsed = false; 
+    // MOVED SLINGSHOT FARTHER LEFT (X is now 50) and made the Orb bigger (30)
+    energyOrb = Bodies.circle(50, 400, 30, { density: 0.01, restitution: 0.8, render: { fillStyle: '#00e5ff' } });
+    const anchor = { x: 50, y: 400 };
+    elastic = Constraint.create({ pointA: anchor, bodyB: energyOrb, stiffness: 0.05, render: { strokeStyle: '#ffffff', lineWidth: 2 } });
+    Composite.add(engine.world, [energyOrb, elastic]);
+}
+
+function takeDamage(body) {
+    if (gracePeriod) return;
+
+    if (body.customHealth && !gameOver && !body.isDying) {
+        body.customHealth -= 1;
+        if (body.customHealth <= 0) {
+            
+            document.body.classList.add('shake');
+            setTimeout(() => document.body.classList.remove('shake'), 300);
+
+            for(let i = 0; i < 5; i++) {
+                // Made the debris particles slightly bigger to match
+                let debris = Bodies.rectangle(body.position.x, body.position.y, 20, 20, {
+                    render: { fillStyle: body.render.fillStyle }
+                });
+                Matter.Body.setVelocity(debris, { x: (Math.random() - 0.5) * 15, y: (Math.random() - 0.5) * 15 });
+                Composite.add(engine.world, debris);
+                setTimeout(() => Composite.remove(engine.world, debris), 1000);
+            }
+
+            if (body.label === 'star') triggerExplosion(body.position);
+            body.isSensor = true; 
+            body.isDying = true; 
+            
+            targetsLeft--; updateHUD(); checkWinLose();
+        } else {
+            body.render.opacity = 0.8;
+        }
+    }
+}
+
+function triggerExplosion(pos) {
+    engine.world.bodies.forEach(otherBody => {
+        // Increased explosion radius (200) because blocks are bigger now
+        if (otherBody.customHealth && Vector.magnitude(Vector.sub(pos, otherBody.position)) < 200) {
+            takeDamage(otherBody);
+        }
+    });
+}
+
+function updateHUD() {
+    document.getElementById('current-level-text').innerText = currentLevel;
+    document.getElementById('shot-count').innerText = shotsLeft;
+    document.getElementById('target-count').innerText = targetsLeft;
+}
+
+function checkWinLose() {
+    if (targetsLeft <= 0) {
+        gameOver = true;
+        setTimeout(() => {
+            messageText.innerText = "LEVEL CLEARED!";
+            
+            let shotsUsed = initialShots - shotsLeft;
+            if (shotsUsed === 1) starDisplay.innerText = "★★★";
+            else if (shotsUsed === 2) starDisplay.innerText = "★★☆";
+            else starDisplay.innerText = "★☆☆";
+            
+            starDisplay.style.display = 'block';
+            document.getElementById('next-level-btn').style.display = currentLevel < 5 ? 'inline-block' : 'none';
+            messageScreen.style.display = 'block';
+        }, 1500);
+    } else if (shotsLeft <= 0 && targetsLeft > 0) {
+        setTimeout(() => {
+            if (targetsLeft > 0 && !gameOver) {
+                gameOver = true;
+                messageText.innerText = "OUT OF SHOTS!";
+                starDisplay.style.display = 'none';
+                document.getElementById('next-level-btn').style.display = 'none';
+                messageScreen.style.display = 'block';
+            }
+        }, 3000);
+    }
+}
+
+document.getElementById('retry-btn').addEventListener('click', () => window.startLevel(currentLevel));
+document.getElementById('next-level-btn').addEventListener('click', () => window.startLevel(currentLevel + 1));
+document.getElementById('menu-btn').addEventListener('click', () => location.reload());
