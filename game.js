@@ -36,6 +36,10 @@ function setupEngine() {
         if (event.body === energyOrb && shotsLeft > 0 && elastic.bodyB !== null) {
             setTimeout(() => {
                 elastic.bodyB = null; // Fire orb
+                
+                // NEW LINE: Delete the old rubber band so it doesn't get stuck!
+                Composite.remove(engine.world, elastic); 
+                
                 shotsLeft--; updateHUD();
                 
                 // Reload Orb after 1.5 seconds if shots remain
