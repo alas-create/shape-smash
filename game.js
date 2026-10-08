@@ -1,4 +1,4 @@
-// 1. Setup Matter.js Tools (We added Mouse, MouseConstraint, Constraint, and Events)
+// 1. Setup Matter.js Tools
 const Engine = Matter.Engine,
       Render = Matter.Render,
       Runner = Matter.Runner,
@@ -9,19 +9,17 @@ const Engine = Matter.Engine,
       Constraint = Matter.Constraint,
       Events = Matter.Events;
 
-// 2. Create the Physics Engine
 const engine = Engine.create();
 
-// 3. Connect the Start Button
+// 2. Connect UI Elements
 const startBtn = document.getElementById('start-btn');
 const mainMenu = document.getElementById('main-menu');
 const gameContainer = document.getElementById('game-container');
 
 startBtn.addEventListener('click', function() {
-    // Hide the main menu
     mainMenu.style.display = 'none';
 
-    // 4. Create the Renderer
+    // 3. Create the Renderer
     const render = Render.create({
         element: gameContainer,
         engine: engine,
@@ -33,52 +31,83 @@ startBtn.addEventListener('click', function() {
         }
     });
 
-    // 5. Create the Floor
+    // 4. Create the Floor
     const floor = Bodies.rectangle(400, 590, 810, 60, { 
         isStatic: true, 
         render: { fillStyle: '#4a4e69' } 
     });
 
-    // 6. Create the Energy Orb
+    // 5. Create the Energy Orb and Slingshot
     let energyOrb = Bodies.circle(150, 400, 20, { 
-        restitution: 0.8, // Makes it bouncy
-        render: { fillStyle: '#00e5ff' } // Bright neon blue
+        restitution: 0.8, 
+        render: { fillStyle: '#00e5ff' } 
     });
 
-    // 7. Create the Slingshot Elastic (The Rubber Band)
-    const anchor = { x: 150, y: 400 }; // The fixed point in the air
+    const anchor = { x: 150, y: 400 };
     const elastic = Constraint.create({
         pointA: anchor,
         bodyB: energyOrb,
-        stiffness: 0.05, // How stretchy the band is
+        stiffness: 0.05,
         render: { strokeStyle: '#ffffff', lineWidth: 2 }
     });
 
-    // 8. Add Mouse Controls
     const mouse = Mouse.create(render.canvas);
     const mouseConstraint = MouseConstraint.create(engine, {
         mouse: mouse,
-        constraint: {
-            stiffness: 0.2,
-            render: { visible: false } // Hides the mouse's invisible grabbing line
-        }
+        constraint: { stiffness: 0.2, render: { visible: false } }
     });
-    render.mouse = mouse; // Keeps the mouse synced with the screen
+    render.mouse = mouse;
 
-    // 9. The Firing Mechanism (Releasing the Orb)
     Events.on(mouseConstraint, 'enddrag', function(event) {
         if (event.body === energyOrb) {
-            // Wait a tiny fraction of a second for the band to snap forward
             setTimeout(() => {
-                elastic.bodyB = null; // Disconnects the rubber band so the orb flies!
+                elastic.bodyB = null;
             }, 20);
         }
     });
 
-    // 10. Add everything to the world
-    Composite.add(engine.world, [floor, energyOrb, elastic, mouseConstraint]);
+    // 6. BUILD THE TARGET TOWER
+    // We use 'label' so the game knows what shape is what for Phase 6.
 
-    // 11. Start the game loop
+    // Base: Rectangle (Heavy & Stable)
+    const blockRect = Bodies.rectangle(600, 540, 120, 40, { 
+        label: 'rectangle', render: { fillStyle: '#8d99ae' } 
+    });
+
+    // Middle Left: Triangle (Slides easily)
+    // Polygon(x, y, sides, radius)
+    const blockTriangle = Bodies.polygon(560, 490, 3, 30, { 
+        label: 'triangle', render: { fillStyle: '#8338ec' } 
+    });
+
+    // Middle Right: Circle (Rolls away)
+    const blockCircle = Bodies.circle(640, 490, 25, { 
+        label: 'circle', render: { fillStyle: '#ffb703' } 
+    });
+
+    // Upper Middle: Square (Balanced)
+    const blockSquare = Bodies.rectangle(600, 440, 50, 50, { 
+        label: 'square', render: { fillStyle: '#ef233c' } 
+    });
+
+    // Top: Diamond (Strongest)
+    // A 4-sided polygon drawn from the center makes a diamond shape!
+    const blockDiamond = Bodies.polygon(600, 390, 4, 30, { 
+        label: 'diamond', render: { fillStyle: '#3a86ff' } 
+    });
+
+    // Very Top: Star (Explosive - Represented physically as a 5-sided gem/pentagon)
+    const blockStar = Bodies.polygon(600, 340, 5, 25, { 
+        label: 'star', render: { fillStyle: '#ff006e' } 
+    });
+
+    // 7. Add EVERYTHING to the world
+    Composite.add(engine.world, [
+        floor, energyOrb, elastic, mouseConstraint,
+        blockRect, blockTriangle, blockCircle, blockSquare, blockDiamond, blockStar
+    ]);
+
+    // 8. Start the game loop
     Render.run(render);
     const runner = Runner.create();
     Runner.run(runner, engine);
