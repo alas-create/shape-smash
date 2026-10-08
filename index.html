@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- The Custom Watermark -->
     <div class="watermark">
         <h1>GAME NI DAELAN</h1>
         <h2>A DAELAN ORIGINAL</h2>
@@ -18,11 +19,10 @@
         <button id="start-btn">Play Now</button>
     </div>
 
-    <!-- NEW: The Level Selection Screen -->
+    <!-- The Level Selection Screen -->
     <div id="level-select" style="display: none;">
         <h1 class="game-title">SELECT LEVEL</h1>
         <div class="level-grid">
-            <!-- onclick tells JavaScript to run our startLevel function -->
             <button class="level-btn" onclick="startLevel(1)">1</button>
             <button class="level-btn" onclick="startLevel(2)">2</button>
             <button class="level-btn" onclick="startLevel(3)">3</button>
@@ -31,6 +31,7 @@
         </div>
     </div>
 
+    <!-- The Game Area -->
     <div id="game-container" style="display: none;">
         <div id="hud">
             Level <span id="current-level-text">1</span> | Shots: <span id="shot-count">3</span> | Targets: <span id="target-count">6</span>
@@ -38,7 +39,6 @@
         
         <div id="message-screen">
             <h1 id="message-text"></h1>
-            <!-- NEW: Dynamic Buttons for winning or losing -->
             <button id="next-level-btn" class="ui-btn" style="display: none;">Next Level</button>
             <button id="retry-btn" class="ui-btn">Retry Level</button>
             <button id="menu-btn" class="ui-btn">Main Menu</button>
