@@ -70,3 +70,12 @@ body {
     background-color: #e94560; /* Button changes to vibrant red when hovered */
     transform: scale(1.1); /* Button grows slightly when hovered */
 }
+/* 4. Game Canvas Styling */
+canvas {
+    display: block;
+    margin: 0 auto;
+    border: 4px solid white;
+    border-radius: 10px;
+    background-color: rgba(0, 0, 0, 0.4); /* Dark semi-transparent background */
+    z-index: 1; /* Keeps the game above the watermark */
+}
