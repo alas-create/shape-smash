@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shape Smash</title>
-    <!-- This next line links our HTML skeleton to our CSS paint -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,11 +14,18 @@
     </div>
 
     <!-- The Main Menu -->
-    <div id="game-container">
-        <div id="main-menu">
-            <h1 class="game-title">SHAPE SMASH</h1>
-            <button id="start-btn">Start Game</button>
-        </div>
+    <div id="main-menu">
+        <h1 class="game-title">SHAPE SMASH</h1>
+        <button id="start-btn">Start Game</button>
     </div>
+
+    <!-- The area where our game will appear -->
+    <div id="game-container"></div>
+
+    <!-- 1. The Physics Engine (Matter.js) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    
+    <!-- 2. Our Game Code (game.js) -->
+    <script src="game.js"></script>
 </body>
 </html>
