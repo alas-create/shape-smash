@@ -11,19 +11,40 @@ const gameContainer = document.getElementById('game-container');
 const messageScreen = document.getElementById('message-screen');
 const messageText = document.getElementById('message-text');
 const starDisplay = document.getElementById('star-display');
+const comboText = document.getElementById('combo-text');
 
 let shotsLeft = 0, initialShots = 0, targetsLeft = 0, currentLevel = 1, gameOver = false;
 let energyOrb, elastic, render, runner, mouseConstraint;
 let dashUsed = false; 
 let gracePeriod = true; 
 
+// --- NEW: ARCADE SYSTEM VARIABLES ---
+let score = 0;
+let comboCount = 0;
+let comboTimer = null;
+
+// Load saved data from the browser (or default to 1 and 0 if playing for the first time)
+let savedHighestLevel = localStorage.getItem('shapeSmashHighestLevel') || 1;
+let savedBestScore = localStorage.getItem('shapeSmashBestScore') || 0;
+
 const floor = Bodies.rectangle(600, 590, 1210, 60, { isStatic: true, render: { fillStyle: '#4a4e69' } });
 
 startBtn.addEventListener('click', () => {
     mainMenu.style.display = 'none';
+    unlockLevels(); // Check which buttons to unlock
     levelSelect.style.display = 'block';
     setupEngine();
 });
+
+// Unlock level buttons based on saved progress
+function unlockLevels() {
+    for (let i = 1; i <= 5; i++) {
+        let btn = document.getElementById('btn-lvl-' + i);
+        if (btn) {
+            btn.disabled = i > savedHighestLevel;
+        }
+    }
+}
 
 function setupEngine() {
     render = Render.create({ element: gameContainer, engine: engine, options: { width: 1200, height: 600, wireframes: false, background: 'transparent' } });
@@ -73,9 +94,7 @@ function setupEngine() {
             }
             if (body.isMaterializing) {
                 body.render.opacity += 0.02; 
-                if (body.render.opacity >= 1) {
-                    body.isMaterializing = false;
-                }
+                if (body.render.opacity >= 1) body.isMaterializing = false;
             }
             if (body.position.y > 650 && body.customHealth && !body.isDying) {
                 body.customHealth = 1; 
@@ -91,12 +110,11 @@ function setupEngine() {
 function spawnBlock(type, x, y) {
     const opts = { density: 0.005, restitution: 0.2 }; 
     let fill = ''; let body = null;
-
     if (type === 'rect') { fill = '#8d99ae'; body = Bodies.rectangle(x, y, 220, 80, { ...opts, label: 'target', customHealth: 2, render: { fillStyle: fill, opacity: 0 } }); }
     if (type === 'square') { fill = '#ef233c'; body = Bodies.rectangle(x, y, 100, 100, { ...opts, label: 'target', customHealth: 2, render: { fillStyle: fill, opacity: 0 } }); }
     if (type === 'circle') { fill = '#ffb703'; body = Bodies.circle(x, y, 50, { ...opts, label: 'target', customHealth: 1, render: { fillStyle: fill, opacity: 0 } }); }
     if (type === 'triangle') { fill = '#8338ec'; body = Bodies.polygon(x, y, 3, 60, { ...opts, label: 'target', customHealth: 1, render: { fillStyle: fill, opacity: 0 } }); }
-    if (type === 'diamond') { fill = '#3a86ff'; body = Bodies.polygon(x, y, 4, 60, { ...opts, label: 'target', customHealth: 3, render: { fillStyle: fill, opacity: 0 } }); }
+    if (type === 'diamond') { fill = '#3a86ff'; body = Bodies.polygon(x, y, 4, 60, { ...opts, label: 'diamond', customHealth: 3, render: { fillStyle: fill, opacity: 0 } }); }
     if (type === 'star') { fill = '#ff006e'; body = Bodies.polygon(x, y, 5, 50, { ...opts, label: 'star', customHealth: 1, render: { fillStyle: fill, opacity: 0 } }); }
     
     body.isMaterializing = true;
@@ -109,16 +127,20 @@ window.startLevel = function(levelNum) {
     gameContainer.style.display = 'block';
     messageScreen.style.display = 'none';
     starDisplay.style.display = 'none';
+    comboText.style.display = 'none';
     gameOver = false;
-    
     gracePeriod = true;
+
+    // Reset score and combo for the new level
+    score = 0;
+    comboCount = 0;
+    document.getElementById('best-score-text').innerText = savedBestScore;
 
     Composite.clear(engine.world);
     Engine.clear(engine);
     Composite.add(engine.world, [floor, mouseConstraint]);
 
     let blocks = [];
-    
     if (levelNum === 1) {
         shotsLeft = 3;
         blocks.push(spawnBlock('square', 1000, 510));
@@ -143,34 +165,21 @@ window.startLevel = function(levelNum) {
         blocks.push(spawnBlock('circle', 1070, 430));
         blocks.push(spawnBlock('rect', 1000, 340));
     } else if (levelNum === 5) {
-        // THE NEW BOSS FORTRESS (16 Blocks, 8 Shots)
         shotsLeft = 8;
-        
-        // Floor Foundation
         blocks.push(spawnBlock('square', 800, 510));
         blocks.push(spawnBlock('square', 960, 510));
         blocks.push(spawnBlock('square', 1120, 510));
-
-        // Platform 1
         blocks.push(spawnBlock('rect', 850, 420));
         blocks.push(spawnBlock('rect', 1070, 420));
-
-        // The Core (2 Stars guarded by 2 Diamonds)
         blocks.push(spawnBlock('diamond', 780, 310));
         blocks.push(spawnBlock('star', 900, 310));
         blocks.push(spawnBlock('star', 1020, 310));
         blocks.push(spawnBlock('diamond', 1140, 310));
-
-        // Platform 2
         blocks.push(spawnBlock('rect', 850, 200));
         blocks.push(spawnBlock('rect', 1070, 200));
-
-        // Top Towers
         blocks.push(spawnBlock('circle', 850, 100));
         blocks.push(spawnBlock('square', 960, 100));
         blocks.push(spawnBlock('circle', 1070, 100));
-
-        // The Crown
         blocks.push(spawnBlock('diamond', 960, -20));
     }
 
@@ -200,13 +209,34 @@ function takeDamage(body) {
             setTimeout(() => document.body.classList.remove('shake'), 300);
 
             for(let i = 0; i < 5; i++) {
-                let debris = Bodies.rectangle(body.position.x, body.position.y, 20, 20, {
-                    render: { fillStyle: body.render.fillStyle }
-                });
+                let debris = Bodies.rectangle(body.position.x, body.position.y, 20, 20, { render: { fillStyle: body.render.fillStyle } });
                 Matter.Body.setVelocity(debris, { x: (Math.random() - 0.5) * 15, y: (Math.random() - 0.5) * 15 });
                 Composite.add(engine.world, debris);
                 setTimeout(() => Composite.remove(engine.world, debris), 1000);
             }
+
+            // --- ARCADE SCORING ---
+            let points = 100; // Normal targets
+            if (body.label === 'diamond') points = 300;
+            if (body.label === 'star') points = 500;
+
+            comboCount++;
+            let earned = points * comboCount;
+            score += earned;
+            
+            // Show combo text if hitting multiple fast
+            if (comboCount > 1) {
+                comboText.innerText = "COMBO x" + comboCount + "!";
+                comboText.style.display = 'block';
+            }
+            
+            // Reset combo timer (if 2 seconds pass with no breaks, combo resets)
+            clearTimeout(comboTimer);
+            comboTimer = setTimeout(() => {
+                comboCount = 0;
+                comboText.style.display = 'none';
+            }, 2000);
+            // ---------------------
 
             if (body.label === 'star') triggerExplosion(body.position);
             body.isSensor = true; 
@@ -231,6 +261,7 @@ function updateHUD() {
     document.getElementById('current-level-text').innerText = currentLevel;
     document.getElementById('shot-count').innerText = shotsLeft;
     document.getElementById('target-count').innerText = targetsLeft;
+    document.getElementById('score-text').innerText = score;
 }
 
 function checkWinLose() {
@@ -239,6 +270,16 @@ function checkWinLose() {
         setTimeout(() => {
             messageText.innerText = "LEVEL CLEARED!";
             
+            // Save Progress System
+            if (score > savedBestScore) {
+                savedBestScore = score;
+                localStorage.setItem('shapeSmashBestScore', savedBestScore);
+            }
+            if (currentLevel >= savedHighestLevel && currentLevel < 5) {
+                savedHighestLevel = currentLevel + 1;
+                localStorage.setItem('shapeSmashHighestLevel', savedHighestLevel);
+            }
+
             let shotsUsed = initialShots - shotsLeft;
             if (shotsUsed <= 2) starDisplay.innerText = "★★★";
             else if (shotsUsed <= 4) starDisplay.innerText = "★★☆";
