@@ -19,26 +19,30 @@
 
     <div id="level-select" style="display: none;">
         <h1 class="game-title">SELECT LEVEL</h1>
+        <!-- We added IDs to these buttons so JavaScript can lock/unlock them -->
         <div class="level-grid">
-            <button class="level-btn" onclick="startLevel(1)">1</button>
-            <button class="level-btn" onclick="startLevel(2)">2</button>
-            <button class="level-btn" onclick="startLevel(3)">3</button>
-            <button class="level-btn" onclick="startLevel(4)">4</button>
-            <button class="level-btn" onclick="startLevel(5)">BOSS</button>
+            <button class="level-btn" id="btn-lvl-1" onclick="startLevel(1)">1</button>
+            <button class="level-btn" id="btn-lvl-2" onclick="startLevel(2)" disabled>2</button>
+            <button class="level-btn" id="btn-lvl-3" onclick="startLevel(3)" disabled>3</button>
+            <button class="level-btn" id="btn-lvl-4" onclick="startLevel(4)" disabled>4</button>
+            <button class="level-btn" id="btn-lvl-5" onclick="startLevel(5)" disabled>BOSS</button>
         </div>
     </div>
 
     <div id="game-container" style="display: none;">
         <div id="hud">
-            Level <span id="current-level-text">1</span> | Shots: <span id="shot-count">3</span> | Targets: <span id="target-count">6</span>
-            <div style="font-size: 16px; margin-top: 5px; color: #ff006e;">Tap anywhere while orb is flying to DASH!</div>
+            <div>Level <span id="current-level-text">1</span> | Shots: <span id="shot-count">3</span> | Targets: <span id="target-count">6</span></div>
+            <!-- NEW: Scoreboard -->
+            <div style="color: #00e5ff; margin-top: 5px;">Score: <span id="score-text">0</span> | Best: <span id="best-score-text">0</span></div>
+            <div style="font-size: 14px; margin-top: 5px; color: #ff006e;">Tap anywhere while orb is flying to DASH!</div>
         </div>
+        
+        <!-- NEW: Combo Floating Text -->
+        <div id="combo-text">COMBO x2!</div>
         
         <div id="message-screen">
             <h1 id="message-text"></h1>
-            <!-- NEW: The 3-Star Display -->
             <div id="star-display" style="font-size: 60px; color: gold; margin-bottom: 20px; text-shadow: 2px 2px 5px black; display: none;"></div>
-            
             <button id="next-level-btn" class="ui-btn" style="display: none;">Next Level</button>
             <button id="retry-btn" class="ui-btn">Retry Level</button>
             <button id="menu-btn" class="ui-btn">Main Menu</button>
