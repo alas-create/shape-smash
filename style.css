@@ -183,3 +183,25 @@ canvas {
 .shake {
     animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
 }
+/* 8. Scoring and Combos */
+#combo-text {
+    display: none;
+    position: absolute;
+    top: 80px;
+    right: 30px;
+    font-size: 40px;
+    font-weight: bold;
+    color: #ffb703;
+    text-shadow: 2px 2px 5px black, 0 0 10px #ffb703;
+    z-index: 20;
+    transform: rotate(5deg);
+}
+
+/* Make locked levels look greyed out */
+.level-btn:disabled {
+    background-color: #333;
+    color: #777;
+    border-color: #555;
+    cursor: not-allowed;
+    transform: none;
+}
